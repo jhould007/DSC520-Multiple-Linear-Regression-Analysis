@@ -1,0 +1,8 @@
+"0","# Assess the distribution of 'SSQ' "
+"0","dist <- testDistribution(adosleep$SSQ)"
+"0","type <- dist$distr"
+"0","paste(""Distribution type:"", type)"
+"1","[1]"
+"1"," ""Distribution type: normal"""
+"1","
+"

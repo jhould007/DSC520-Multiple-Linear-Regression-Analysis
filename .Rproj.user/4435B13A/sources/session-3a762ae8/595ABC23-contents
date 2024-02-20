@@ -1,0 +1,360 @@
+---
+title: "MLR Analysis Technical Report"
+author: "Josh Houlding"
+date: "2024-02-06"
+output: html_document
+---
+
+```{r setup, include=FALSE, echo=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# Install and load packages
+library(JWileymisc)
+library(gplots)
+library(stargazer)
+library(ggplot2)
+library(cowplot)
+```
+
+### Task 2
+Create a synthetic dataset using the code provided in the "DSC-520 Multiple Regression –
+Dataset." Note that this snippet of R code is designed to generate data that approximates the 
+data described in the article.
+
+```{r}
+# Generate synthetic dataset
+library(data.table)
+set.seed(12345)
+adosleep <- data.table(
+ SOLacti = rnorm(150, 4.4, 1.3)^2,
+ DBAS = rnorm(150, 72, 26),
+ DAS = rnorm(150, 125, 32),
+ Female = rbinom(150, 1, .53),
+ Stress = rnorm(150, 32, 11))
+adosleep[, SSQ := rnorm(150,
+ (.36*3/12.5)*SOLacti +
+ (.16*3/26)*DBAS +
+ (.18*3/.5)*Female +
+ (.20*3/11)*Stress,2.6)]
+adosleep[, MOOD := rnorm(150,
+ (-.07/12.5)*SOLacti +
+ (.29/3)*SSQ +
+ (.14/26)*DBAS +
+ (.21/32)*DAS +
+ (.12/32)*SSQ*(DAS-50) +
+ (.44/.5)*Female +
+ (.28/11)*Stress, 2)]
+adosleep[, Female := factor(Female, levels=0:1, labels = c("Males", "Females"
+))]
+# Display the synthetic dataset
+adosleep
+```
+
+### Task 3
+Instructions: Inspect the core variables to assess their distribution (using the testdistr function) and 
+identify outliers: MOOD, SSQ, SOLacti, DAS. Plot the distribution of each variable.
+
+Now that we have our data, we will inspect the distributions and identify outliers for the following variables: `SOLacti`, `DAS`, `SSQ`, and `MOOD`. 
+
+#### Variable `SOLacti`
+```{r}
+# Assess the distribution of 'SOLacti' 
+dist <- testDistribution(adosleep$SOLacti)
+type <- dist$distr
+paste("Distribution type:", type)
+```
+We see from the `$distr` variable that the distribution of `SOLacti` is roughly normal. 
+
+```{r}
+# Identify outliers of 'SOLacti'
+Q1 <- quantile(adosleep$SOLacti, 0.25)
+Q3 <- quantile(adosleep$SOLacti, 0.75)
+IQR <- Q3 - Q1
+outliers <- which(adosleep$SOLacti < (Q1 - 1.5 * IQR) | adosleep$SOLacti > (Q3 + 1.5 * IQR))
+outliers <- adosleep[outliers, ]
+head(outliers)
+```
+```{r}
+# Plot distribution of 'SOLacti'
+hist(adosleep$SOLacti, main = "Histogram of SOLacti", xlab = "SOLacti", col = "skyblue", border = "black")
+```
+
+#### Variable `DAS`
+```{r}
+# Assess the distribution of 'DAS' 
+dist <- testDistribution(adosleep$DAS)
+type <- dist$distr
+paste("Distribution type:", type)
+```
+Just as with the previous variable, `DAS` is normally distributed. 
+
+```{r}
+# Identify outliers of 'DAS'
+Q1 <- quantile(adosleep$DAS, 0.25)
+Q3 <- quantile(adosleep$DAS, 0.75)
+IQR <- Q3 - Q1
+outliers <- which(adosleep$DAS < (Q1 - 1.5 * IQR) | adosleep$DAS > (Q3 + 1.5 * IQR))
+outliers <- adosleep[outliers, ]
+head(outliers)
+```
+```{r}
+# Plot distribution of 'DAS'
+hist(adosleep$DAS, main = "Histogram of DAS", xlab = "DAS", col = "red", border = "black")
+```
+
+#### Variable `SSQ`
+```{r}
+# Assess the distribution of 'SSQ' 
+dist <- testDistribution(adosleep$SSQ)
+type <- dist$distr
+paste("Distribution type:", type)
+```
+`SSQ` also follows a roughly normal distribution. 
+
+```{r}
+# Identify outliers of 'SSQ'
+Q1 <- quantile(adosleep$SSQ, 0.25)
+Q3 <- quantile(adosleep$SSQ, 0.75)
+IQR <- Q3 - Q1
+outliers <- which(adosleep$SSQ < (Q1 - 1.5 * IQR) | adosleep$SSQ > (Q3 + 1.5 * IQR))
+outliers <- adosleep[outliers, ]
+head(outliers)
+```
+```{r}
+# Plot distribution of 'SSQ'
+hist(adosleep$SOLacti, main = "Histogram of SSQ", xlab = "SSQ", col = "forestgreen", border = "black")
+```
+
+#### Variable `MOOD`
+```{r}
+# Assess the distribution of 'MOOD' 
+dist <- testDistribution(adosleep$MOOD)
+type <- dist$distr
+paste("Distribution type:", type)
+```
+`MOOD` is also normally distributed. 
+
+```{r}
+# Identify outliers of 'MOOD'
+Q1 <- quantile(adosleep$MOOD, 0.25)
+Q3 <- quantile(adosleep$MOOD, 0.75)
+IQR <- Q3 - Q1
+outliers <- which(adosleep$MOOD < (Q1 - 1.5 * IQR) | adosleep$MOOD > (Q3 + 1.5 * IQR))
+outliers <- adosleep[outliers, ]
+head(outliers)
+```
+```{r}
+# Plot distribution of 'MOOD'
+hist(adosleep$SOLacti, main = "Histogram of MOOD", xlab = "MOOD", col = "orange", border = "black")
+```
+
+### Task 4
+Instructions: Examine the bivariate correlations between study variables: SSQ, MOOD, Stress, SOLacti, 
+DAS, DBAS. Plot a heatmap depicting the correlations table (use the plot function and 
+appropriate theme).
+
+Next, we will examine the correlations between the study variables `SOLacti`, `DBAS`, `DAS`, `Stress`, `SSQ`, and `MOOD`. This can be done using a heatmap. 
+
+```{r, warning=FALSE}
+# Get subset of data containing only necessary variables
+study_variables <- adosleep[, c("SOLacti", "DBAS", "DAS", "Stress", "SSQ", "MOOD")]
+
+# Generate correlation matrix
+corr_matrix <- cor(study_variables)
+corr_matrix <- round(corr_matrix, digits=2)
+corr_matrix <- round(corr_matrix, digits=3)
+print(corr_matrix)
+
+# Generate heatmap
+heatmap.2(corr_matrix, main="Bivariate Correlations Heatmap", col=colorRampPalette(c("blue","white","red"))(100), margins=c(5,5), notecol="black", Rowv=NULL, Colv=NULL, symkey=FALSE, key=TRUE)
+```
+We see that the strongest correlations occur between `MOOD` and `DAS`, `MOOD` and `SSQ`, `MOOD` and `Stress`, and `SSQ` and `Stress`. 
+
+### Task 5
+Create a basic table of graphs of descriptive statistics using the egltable function. Standardize 
+the predictors to get standardized estimates (as in the article) using 
+`as.vector(scale(variable_name))`.
+
+<b>Predictors:</b> `SOLacti`, `DBAS`, `DAS`, `Stress`. 
+
+```{r}
+# Display descriptive statistics
+egltable(data = adosleep, 
+         vars = c("SOLacti", "DBAS", "DAS", "Stress", "SSQ", "MOOD")
+)
+```
+```{r}
+# Standardize predictors
+standardized_adosleep <- adosleep
+standardized_adosleep$SOLacti <- as.vector(scale(standardized_adosleep$SOLacti))
+standardized_adosleep$DBAS <- as.vector(scale(standardized_adosleep$DBAS))
+standardized_adosleep$DAS <- as.vector(scale(standardized_adosleep$DAS))
+standardized_adosleep$Stress <- as.vector(scale(standardized_adosleep$SOLacti))
+
+# Display descriptive statistics of standardized predictors to confirm successful standardization
+egltable(data = standardized_adosleep, 
+         vars = c("SOLacti", "DBAS", "DAS", "Stress")
+)
+```
+
+### Task 6
+Fit three different models and compare them. 
+* Model 1: Just the covariates
+* Model 2: Model 1 + main constructs of interest without interactions
+* Model 3: Model 2 + add the hypothesized interaction between subjective sleep quality and global dysfunctional beliefs
+
+```{r}
+# Fit model 1 (covariates only)
+model1 <- lm(MOOD ~ SOLacti + DBAS + Female + Stress, data = standardized_adosleep)
+
+# Fit model 2 (main construct of interest DAS added)
+model2 <- lm(MOOD ~ DAS + SOLacti + DBAS + Female + Stress, data = standardized_adosleep)
+
+# Fit model 3 (interaction term between SSQ and DAS added)
+model3 <- lm(MOOD ~ DAS + SOLacti + DBAS + Female + Stress + SSQ:DAS, data = standardized_adosleep)
+```
+
+### Task 7
+Combine the results of the three models into one table using the screenreg() function. Note 
+the asterisk to the right of the threshold p-values and the errors in parentheses.
+
+<b>Note:</b> Attempting to install the `screenreg` package led to this warning: 
+`Warning in install.packages :
+  package ‘screenreg’ is not available for this version of R`
+  
+Thus, I opted to use a package with similar functionality, `stargazer`. 
+
+```{r}
+# Display regression results side-by-side
+thresholds <- c(0.05, 0.01, 0.001)
+regression_results <- stargazer(model1, model2, model3, type="text", p.auto = FALSE, p.thresholds = thresholds)
+```
+
+
+### Task 8
+Since higher scores on subjective sleep quality indicate poorer sleep quality, assess which 
+model (if any) shows that overall worse sleep quality and overall dysfunctional attitudes are 
+significantly associated with more negative mood (p < .001).
+
+IE: Which model (if any) shows that `SOLacti` and `DBAS` are significantly associated with `MOOD`? 
+
+We see from the results that `SOLActi` is significantly associated with `MOOD` in all 3 models (P < 0.001), but `DBAS` does not cross the P < 0.001 threshold in any of the models. 
+
+### Task 9
+Ensure that the models are appropriate. Check the variance inflation factors (using the vif
+function) and the distribution of residuals (using the testdistr function). Describe and 
+interpret your findings.
+
+```{r}
+# Check for aliased coefficients in model 1
+print(alias(model1))
+```
+```{r}
+# Check for aliased coefficients in model 2
+print(alias(model2))
+```
+
+```{r}
+# Check for aliased coefficients in model 3
+print(alias(model3))
+```
+
+It appears that `SOLacti` has an aliased coefficient in all 3 models, thus preventing VIF calculation, so we will remove it and check VIF. 
+
+```{r}
+# Refit models without 'SOLacti'
+model1_noalias <- lm(MOOD ~ DBAS + Female + Stress, data = standardized_adosleep)
+model2_noalias <- lm(MOOD ~ DAS + DBAS + Female + Stress, data = standardized_adosleep)
+model3_noalias <- lm(MOOD ~ DAS + DBAS + Female + Stress + SSQ:DAS, data = standardized_adosleep)
+```
+
+```{r}
+# Check model 1 VIF
+print(car::vif(model1_noalias))
+```
+
+The VIF values for all 3 predictors are very close to 1, indicating no strong correlation with other predictors. 
+
+```{r}
+# Check model 1 residual distribution
+dist <- testDistribution(residuals(model1))
+type <- dist$distr
+paste("Residual distribution type:", type)
+```
+
+The residuals for model 1 are normally distributed, so this assumption of linear regression is not violated. 
+
+```{r}
+# Check model 2 VIF
+print(car::vif(model2_noalias))
+```
+
+As in the last model, all predictors have VIFs close to 1, indicating no multicollinearity. 
+
+```{r}
+# Check model 2 residual distribution
+dist <- testDistribution(residuals(model2))
+type <- dist$distr
+paste("Residual distribution type:", type)
+```
+
+```{r}
+# Check model 3 VIF
+print(car::vif(model3_noalias))
+```
+
+In model 3, we see that `DAS` and `DAS:SSQ` have high VIFs, though this is because the latter involves the former, so we would expect this. Thus, there are no unexpected problems. 
+
+```{r}
+# Check model 3 residual distribution
+dist <- testDistribution(residuals(model3))
+type <- dist$distr
+paste("Residual distribution type:", type)
+```
+
+All 3 models have normally-distributed residuals, meaning they are likely to be appropriate. Further tests for homoscedasticity and independence of residuals would further bolster the credibility of the models. 
+
+### Task 10
+Refit the model on raw (i.e., nonstandardized data).
+
+```{r}
+# Refit model 3 on nonstandardized data
+model3 <- lm(MOOD ~ DAS + SOLacti + DBAS + Female + Stress + SSQ:DAS, data = adosleep)
+summary(model3)
+```
+
+### Task 11
+Use ggplot to visualize the relations between subjective sleep quality and negative mood, and 
+the relation of poor sleep quality and mood of vulnerable adolescents with higher levels of 
+dysfunctional attitudes. If you completed the previous steps correctly, the following R code 
+should plot the graph:
+
+```{r}
+# Plot SSQ vs. MOOD with DAS color
+ggplot(adosleep, aes(x = SSQ, y = MOOD, color=DAS)) +
+  geom_point() +
+  labs(
+    x = "Subjective Sleep Quality (SSQ)",
+    y = "Negative Mood (MOOD)",
+    title = "Subjective Sleep Quality vs. Negative Mood by DAS"
+  ) +
+  theme_minimal()
+```
+<br><br>
+We see a fairly strong positive linear relationship between subjective sleep quality and negative mood, so it is safe to say that this data indicates that an individual who reports a higher subjective sleep quality will be more likely to suffer from low mood. Additionally, we see that lighter-colored points are more common at higher negative mood levels, indicating that `DAS` has a noticeable effect on an individual's negative mood. 
+
+### Task 12
+Review the original objective of the analysis and ensure you were able to address the objectives, produce answers, and back up your claims with relevant calculations.
+
+<b>Study objectives: </b>School terms and vacations represent naturally occurring periods of restricted and extended sleep opportunities. <span style="color:red">A cognitive model of the relationships among objective sleep, subjective sleep, and negative mood was tested across these periods, with sleep-specific (i.e., dysfunctional beliefs and attitudes about sleep) and global (i.e., dysfunctional attitudes) cognitive vulnerabilities as moderators.</span>
+<br><br>
+<b>Objective checklist:</b>
+
+* Modeled relationships between objective sleep, subjective sleep, and negative mood? ✔
+* Included dysfunctional attitudes and cognitive vulnerabilities in the analysis? ✔
+
+<br>
+
+All study objectives have been addressed, and all claims have been backed up with calculations and visualizations.
+
+<br><br>

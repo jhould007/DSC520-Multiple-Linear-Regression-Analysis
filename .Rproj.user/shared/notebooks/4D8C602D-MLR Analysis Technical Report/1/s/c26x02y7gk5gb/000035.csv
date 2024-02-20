@@ -1,0 +1,7 @@
+"0","# Identify outliers of 'SOLacti'"
+"0","Q1 <- quantile(adosleep$SOLacti, 0.25)"
+"0","Q3 <- quantile(adosleep$SOLacti, 0.75)"
+"0","IQR <- Q3 - Q1"
+"0","outliers <- which(adosleep$SOLacti < (Q1 - 1.5 * IQR) | adosleep$SOLacti > (Q3 + 1.5 * IQR))"
+"0","outliers <- adosleep[outliers, ]"
+"0","head(outliers)"

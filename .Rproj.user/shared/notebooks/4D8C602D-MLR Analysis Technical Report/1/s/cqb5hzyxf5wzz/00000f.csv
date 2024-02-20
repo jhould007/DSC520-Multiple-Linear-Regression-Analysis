@@ -1,0 +1,4 @@
+"0","# Refit models without 'SOLacti'"
+"0","model1_noalias <- lm(MOOD ~ DBAS + Female + Stress, data = standardized_adosleep)"
+"0","model2_noalias <- lm(MOOD ~ DAS + DBAS + Female + Stress, data = standardized_adosleep)"
+"0","model3_noalias <- lm(MOOD ~ DAS + DBAS + Female + Stress + SSQ:DAS, data = standardized_adosleep)"

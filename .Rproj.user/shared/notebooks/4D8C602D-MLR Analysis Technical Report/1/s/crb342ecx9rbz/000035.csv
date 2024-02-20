@@ -1,0 +1,2 @@
+"0","# Plot distribution of 'DAS'"
+"0","hist(adosleep$DAS, main = ""Histogram of DAS"", xlab = ""DAS"", col = ""red"", border = ""black"")"

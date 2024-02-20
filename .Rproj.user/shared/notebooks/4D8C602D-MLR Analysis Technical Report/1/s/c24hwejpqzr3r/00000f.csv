@@ -1,0 +1,8 @@
+"0","# Check model 3 residual distribution"
+"0","dist <- testDistribution(residuals(model3))"
+"0","type <- dist$distr"
+"0","paste(""Residual distribution type:"", type)"
+"1","[1]"
+"1"," ""Residual distribution type: normal"""
+"1","
+"

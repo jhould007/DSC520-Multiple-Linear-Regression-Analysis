@@ -1,0 +1,8 @@
+"0","# Fit model 1 (covariates only)"
+"0","model1 <- lm(MOOD ~ SOLacti + DBAS + Female + Stress, data = standardized_adosleep)"
+"0",""
+"0","# Fit model 2 (main construct of interest DAS added)"
+"0","model2 <- lm(MOOD ~ DAS + SOLacti + DBAS + Female + Stress, data = standardized_adosleep)"
+"0",""
+"0","# Fit model 3 (interaction term between SSQ and DAS added)"
+"0","model3 <- lm(MOOD ~ DAS + SOLacti + DBAS + Female + Stress + SSQ:DAS, data = standardized_adosleep)"

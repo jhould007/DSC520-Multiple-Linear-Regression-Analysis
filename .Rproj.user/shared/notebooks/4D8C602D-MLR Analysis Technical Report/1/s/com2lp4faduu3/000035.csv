@@ -1,0 +1,2 @@
+"0","# Plot distribution of 'MOOD'"
+"0","hist(adosleep$SOLacti, main = ""Histogram of MOOD"", xlab = ""MOOD"", col = ""orange"", border = ""black"")"

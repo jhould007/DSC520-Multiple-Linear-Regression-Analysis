@@ -1,0 +1,4 @@
+"0","# Display descriptive statistics"
+"0","egltable(data = adosleep, "
+"0","         vars = c(""SOLacti"", ""DBAS"", ""DAS"", ""Stress"", ""SSQ"", ""MOOD"")"
+"0",")"
